@@ -1,8 +1,8 @@
 # Domofon Miwi-Urmet 1132/620 z Zigbee i Home Assistant
 
-**Zwykły domofon, powiadomienia na telefon i otwieranie drzwi jednym dotknięciem.** Bez wymiany unifonu, bez podnoszenia słuchawki i bez ingerencji w magistralę budynku.
+**Powiadomienie o dzwonku na telefon, otwieranie drzwi jednym dotknięciem i zero dodatkowego zasilania.** Cały sterownik działa na oryginalnej baterii **CR2032 termometru Xiaomi** — bez zasilacza, kabla USB czy doprowadzania osobnego przewodu zasilającego. Oryginalny unifon nadal działa normalnie.
 
-Sercem projektu jest… termometr **Xiaomi LYWSD03MMC**. Po zmianie oprogramowania na zmodyfikowany [ZigbeeTLc](https://github.com/pvvx/ZigbeeTLc) działa jako sterownik domofonu. Potrzeba jeszcze kilku prostych elementów elektronicznych.
+Sercem projektu jest… bateryjny termometr **Xiaomi LYWSD03MMC**. Po zmianie oprogramowania na zmodyfikowany [ZigbeeTLc](https://github.com/pvvx/ZigbeeTLc) działa jako sterownik domofonu. Potrzeba jeszcze kilku prostych elementów elektronicznych.
 
 Projekt powstał dla **Miwi-Urmet 1132/620 (starsza wersja płytki)**. Nie zakładaj, że oznaczenia styków będą takie same w innym unifonie.
 
@@ -10,8 +10,15 @@ Projekt powstał dla **Miwi-Urmet 1132/620 (starsza wersja płytki)**. Nie zakł
 
 ![Schemat blokowy całego układu](docs/img/s_blokowy.png)
 
+## Największa zaleta: zasilanie z jednej CR2032
+
+Sterownik wykorzystuje **baterię zamontowaną w termometrze Xiaomi LYWSD03MMC**. Nie trzeba szukać zasilania wewnątrz domofonu, montować przetwornicy ani prowadzić dodatkowych przewodów. Dzięki Zigbee i zmodyfikowanemu firmware urządzenie może oszczędzać energię między wywołaniami, a po dzwonku przez około 60 sekund częściej odbierać polecenia.
+
+**Czas pracy na jednej baterii nie został jeszcze udokumentowany pomiarami długoterminowymi** — nie podajemy więc obietnic w miesiącach czy latach. Instalacja nie wymaga jednak żadnego dodatkowego źródła zasilania sterownika.
+
 ## Co potrafi?
 
+- **Działa na baterii CR2032, bez dodatkowego zasilania sterownika.**
 - Wykrywa dzwonek domofonu i wysyła powiadomienie przez Home Assistant.
 - Pozwala otworzyć drzwi bezpośrednio z powiadomienia na telefonie.
 - Elektronicznie symuluje podniesienie słuchawki i naciśnięcie przycisku otwierania.
