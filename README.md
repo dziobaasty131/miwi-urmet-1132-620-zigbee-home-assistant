@@ -6,7 +6,7 @@ Sercem projektu jest… termometr **Xiaomi LYWSD03MMC**. Po zmianie oprogramowan
 
 Projekt powstał dla **Miwi-Urmet 1132/620 (starsza wersja płytki)**. Nie zakładaj, że oznaczenia styków będą takie same w innym unifonie.
 
-**[Pełna dokumentacja i schematy (PDF)](docs/domofon-miwi-urmet-home-assistant.pdf)**
+**[Instrukcja montażu krok po kroku](docs/MONTAZ.md)** · [Dokumentacja ze schematami (PDF)](docs/domofon-miwi-urmet-home-assistant.pdf)
 
 ![Schemat blokowy całego układu](docs/img/s_blokowy.png)
 
@@ -83,7 +83,7 @@ W repozytorium znajdują się:
 
 ### Samodzielna kompilacja
 
-Projekt bazuje na commicie `c915b52` ZigbeeTLc. Po pobraniu upstreamu i umieszczeniu patchy w odpowiedniej ścieżce można użyć poniższych poleceń:
+Projekt bazuje na commicie `c915b52` ZigbeeTLc. Poniższe polecenia uruchom z katalogu nadrzędnego, w którym znajduje się sklonowane repozytorium z patchami. Dzięki temu ścieżka `../firmware/patches/` będzie poprawna tylko wtedy, gdy odpowiednio przygotujesz układ katalogów. W przeciwnym razie podaj pełną ścieżkę do plików `.patch`:
 
 ```bash
 git clone https://github.com/pvvx/ZigbeeTLc.git && cd ZigbeeTLc
