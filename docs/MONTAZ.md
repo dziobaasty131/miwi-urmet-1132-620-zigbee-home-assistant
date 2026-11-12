@@ -30,9 +30,25 @@ Zmierzone połączenia przełącznika widełkowego **od strony spodniej**:
 
 W opisywanej płytce pin 3 jest połączony z masą unifonu (blaszką przycisku), a pin 5 z czerwonym przewodem głośnika. **Nie trzeba przecinać ścieżek ani usuwać oryginalnych elementów**.
 
-### Mapa rzeczywistych punktów lutowania
+### Zdjęcia montażu — co udało się ustalić
 
-**Do uzupełnienia zdjęciem płytki od użytkownika.** Schematy pokazują połączenia elektryczne, ale nie zastępują fotografii z jednoznacznym oznaczeniem fizycznych punktów lutowania. Nie traktuj numeracji z tabeli jako potwierdzenia położenia nóżek w innej rewizji unifonu.
+Użytkownik udokumentował **obie strony oryginalnej płytki Miwi-Urmet 1132/620** oraz stronę lutowania termometru Xiaomi LYWSD03MMC. Na fotografii z przylutowanymi przewodami oryginalna płytka unifonu jest pokazana **od strony ścieżek**, ze złączami/przewodami widocznymi w górnej części kadru. Przewody sterownika są dołączone do istniejących punktów lutowniczych, bez przecinania ścieżek.
+
+**Po stronie termometru** (widok płytki od strony lutowania, nadruki czytelne) da się rozpoznać następujące połączenia:
+
+| Przewód widoczny na zdjęciu | Punkt na płytce termometru | Funkcja według schematu |
+|---|---|---|
+| Żółty | **P9** (górna lewa część zdjęcia) | Sterowanie widełkami |
+| Czarny | **GND** (prawa górna część) | Masa układu |
+| Czerwony | **P8** (dolna lewa część) | Wejście dzwonka |
+| Niebieski | **P7** (dolna prawa część) | Sterowanie otwieraniem |
+
+Te pozycje odnoszą się **wyłącznie do orientacji na otrzymanym zdjęciu**. Punkt SWS/P14 pozostaje niewykorzystany na fotografiach.
+
+**Po stronie unifonu** widać dodatkowe przewody przylutowane do istniejących styków po obu stronach płytki. Nie wszystkie ich końce i przebieg można odtworzyć z pojedynczych fotografii. Dlatego nie przypisujemy przewodom kolorów do funkcji bez weryfikacji miernikiem i porównania z rysunkami z PDF-u.
+
+**Status zdjęć:** fotografie zostały dostarczone do analizy, ale nie zostały jeszcze umieszczone jako pliki w repozytorium. Po ich dodaniu należy tutaj osadzić oznaczone kadry obu stron unifonu oraz termometru. Nie należy traktować powyższego opisu jako alternatywy dla sprawdzenia połączeń. 
+
 
 ## 3. Podłącz wykrywanie dzwonka
 
@@ -134,3 +150,7 @@ Przykładowy skrypt ogranicza wydanie polecenia otwarcia do **60 sekund po dzwon
 - [Pełny opis pomiarów, firmware i zdjęć (PDF)](domofon-miwi-urmet-home-assistant.pdf)
 
 > **W przygotowaniu:** oznaczone zdjęcie oryginalnej płytki unifonu ze wskazaniem rzeczywistych punktów lutowania. Do jego dodania schematy i pomiary są jedynym źródłem lokalizacji połączeń w tej wersji układu.
+
+## 10. Przykład działania na iPhonie
+
+W działającym układzie po naciśnięciu przycisku przy wejściu iPhone pokazuje powiadomienie **„Domofon 🔔 — Ktoś przy klatce”**. Po rozwinięciu powiadomienia pojawiają się akcje **„Otwórz drzwi 🔓”** i **„Ignoruj 🚫”**. Są to zrzuty ekranu z działającej instalacji Home Assistant, a nie wizualizacje koncepcyjne. Wygląd i uprawnienia powiadomień zależą od wersji iOS oraz konfiguracji aplikacji Home Assistant.
