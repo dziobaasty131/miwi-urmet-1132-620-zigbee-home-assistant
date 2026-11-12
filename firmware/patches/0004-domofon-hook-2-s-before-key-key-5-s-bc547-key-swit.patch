@@ -1,0 +1,43 @@
+From 7f8ea7a587c68be5bfd606d2055b2c4d6a4919ca Mon Sep 17 00:00:00 2001
+From: domofon <domofon@lab>
+Date: Thu, 12 Nov 2026 15:58:12 +0000
+Subject: [PATCH 4/5] domofon: hook 2 s before key, key 5 s (BC547 key switch
+ reliable; open ~1 s sooner)
+
+---
+ src/board_lyws03mmc.h | 4 ++--
+ src/version_cfg.h     | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/src/board_lyws03mmc.h b/src/board_lyws03mmc.h
+index 6db5fe4..f6da534 100644
+--- a/src/board_lyws03mmc.h
++++ b/src/board_lyws03mmc.h
+@@ -18,8 +18,8 @@
+ #define DEF_OCCUPANCY_DELAY		3	// sec, ring held this long after last LED pulse
+ #define DEF_OCCUPANCY_THRES		0
+ #define DOMOFON_FAST_POLL_SEC	60	// fast polling after ring
+-#define DOMOFON_HOOK_PRE_MS		4000
+-#define DOMOFON_KEY_MS			4000
++#define DOMOFON_HOOK_PRE_MS		2000
++#define DOMOFON_KEY_MS			5000
+ #define DOMOFON_HOOK_POST_MS	500
+ #define DOM_GPIO_HOOK			GPIO_PC4	// pcb "P9"
+ #define DOM_GPIO_KEY			GPIO_PD7	// pcb "P7"
+diff --git a/src/version_cfg.h b/src/version_cfg.h
+index a753005..3fcb860 100644
+--- a/src/version_cfg.h
++++ b/src/version_cfg.h
+@@ -142,7 +142,7 @@
+ #define APP_BUILD				0x18	//BCD app build "0.4"
+ #elif USE_DOMOFON
+ #define APP_RELEASE				0x20	// domofon fork 20.00 (above devbis 11.00)
+-#define APP_BUILD				0x02
++#define APP_BUILD				0x03
+ #else
+ #define APP_RELEASE				0x01	//BCD app release "0.1"
+ #define APP_BUILD				0x40	//BCD app build "3.9"
+-- 
+2.43.0
+
+

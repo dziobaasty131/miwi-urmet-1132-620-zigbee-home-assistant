@@ -1,0 +1,191 @@
+From 90aac15cf306864f9628be086c1cef0f73a06c60 Mon Sep 17 00:00:00 2001
+From: domofon <domofon@lab>
+Date: Thu, 12 Nov 2026 18:06:05 +0000
+Subject: [PATCH 5/5] domofon: wait for ring to stop before key; click hook
+ (down 0.4 s) if still ringing after 2.5 s, max 2x
+
+---
+ src/board_lyws03mmc.h | 12 +++++--
+ src/domofon.c         | 74 +++++++++++++++++++++++++++++++++++++++----
+ src/domofon.h         |  3 +-
+ src/sensor_pir.c      |  4 +++
+ src/version_cfg.h     |  2 +-
+ 5 files changed, 84 insertions(+), 11 deletions(-)
+
+diff --git a/src/board_lyws03mmc.h b/src/board_lyws03mmc.h
+index f6da534..163333b 100644
+--- a/src/board_lyws03mmc.h
++++ b/src/board_lyws03mmc.h
+@@ -18,8 +18,16 @@
+ #define DEF_OCCUPANCY_DELAY		3	// sec, ring held this long after last LED pulse
+ #define DEF_OCCUPANCY_THRES		0
+ #define DOMOFON_FAST_POLL_SEC	60	// fast polling after ring
+-#define DOMOFON_HOOK_PRE_MS		2000
+-#define DOMOFON_KEY_MS			5000
++#define DOMOFON_KEY_MS			4000	// key held after the call is answered
++#define DOMOFON_TICK_MS			100	// ring check period while the hook is up
++#define DOMOFON_RING_ACTIVE_MS	3000	// ring pulse this recent = still ringing at "open"
++#define DOMOFON_ANSWER_SILENCE_MS	1200	// no ring pulse this long = answered
++#define DOMOFON_ANSWER_MIN_MS	1000	// earliest "answered" after hook up
++#define DOMOFON_KEY_DELAY_MS	300	// pause between "answered" and key
++#define DOMOFON_RETRY_AFTER_MS	2500	// still ringing -> click the hook
++#define DOMOFON_FLASH_MS		400	// hook down time for the click
++#define DOMOFON_RETRIES			2
++#define DOMOFON_NORING_KEY_MS	3000	// no ring heard at all: key after this (old timing)
+ #define DOMOFON_HOOK_POST_MS	500
+ #define DOM_GPIO_HOOK			GPIO_PC4	// pcb "P9"
+ #define DOM_GPIO_KEY			GPIO_PD7	// pcb "P7"
+diff --git a/src/domofon.c b/src/domofon.c
+index b8a27d0..6ff0cac 100644
+--- a/src/domofon.c
++++ b/src/domofon.c
+@@ -1,6 +1,12 @@
+ /* Domofon (intercom) add-on for ZigbeeTLc LYWSD03MMC B1.4
+  * P8 (PA6) ring input  -> Occupancy Sensing (reported immediately, wakes the chip)
+- * On/Off "On" command  -> P9 (PC4) hook 0.5 s -> P7 (PD7) key 1 s -> release 0.5 s
++ * On/Off "On" command  -> P9 (PC4) hook up, wait until the ring stops (= answered),
++ *                         then P7 (PD7) key, release, hook down.
++ * 12.11.2026: the handset hook switch sometimes does not engage (also by hand -
++ * a quick click on the hook helped). If the ring is still heard after
++ * DOMOFON_RETRY_AFTER_MS, the hook is "clicked" (down for DOMOFON_FLASH_MS, up again),
++ * up to DOMOFON_RETRIES times. Key is pressed only after the ring stops (or as a
++ * fallback). If no ring was heard at all, the old fixed timing is used.
+  * After a ring the device polls its parent every 250 ms for DOMOFON_FAST_POLL_SEC.
+  */
+ #include "tl_common.h"
+@@ -14,7 +20,15 @@
+ volatile u8 g_domofon_busy;
+ static ev_timer_event_t *dom_seq_timer;
+ static ev_timer_event_t *dom_poll_timer;
+-static u8 dom_step;
++
++static volatile u32 dom_last_ring;	// clock_time() of the last ring pulse seen on P8
++static volatile u8 dom_ring_valid;	// dom_last_ring holds a real value
++static u8 dom_state;
++static u8 dom_ringing;			// ring was active when the hook went up (or appeared later)
++static u8 dom_retries;
++static u16 dom_elapsed;			// ms since the (last) hook up
++
++enum { DOM_WAIT = 0, DOM_FLASH_UP, DOM_KEY_ON, DOM_KEY_OFF, DOM_HOOK_DOWN };
+ 
+ extern void set_PollRate(void);
+ 
+@@ -40,14 +54,57 @@ void domofon_ring_start(void) {
+ 	dom_fast_poll();
+ }
+ 
++/* called from task_pir() on every loop pass while P8 is active */
++void domofon_ring_pulse(void) {
++	dom_last_ring = clock_time();
++	dom_ring_valid = 1;
++}
++
++static u8 dom_ring_within(u32 ms) {
++	return dom_ring_valid && !clock_time_exceed(dom_last_ring, ms * 1000);
++}
++
+ static s32 dom_seq_cb(void *arg) {
+ 	(void) arg;
+-	switch(dom_step++) {
+-	case 0: // hook is up -> press key
++	switch(dom_state) {
++	case DOM_WAIT:
++		dom_elapsed += DOMOFON_TICK_MS;
++		if(!dom_ringing) {
++			if(dom_ring_within(DOMOFON_TICK_MS * 2)) {
++				dom_ringing = 1; // ring showed up after the hook went up
++			} else if(dom_elapsed >= DOMOFON_NORING_KEY_MS) {
++				dom_state = DOM_KEY_ON; // no ring at all: old fixed timing
++				return 1;
++			}
++			return DOMOFON_TICK_MS;
++		}
++		if(dom_elapsed >= DOMOFON_ANSWER_MIN_MS && !dom_ring_within(DOMOFON_ANSWER_SILENCE_MS)) {
++			dom_state = DOM_KEY_ON; // ring stopped = answered
++			return DOMOFON_KEY_DELAY_MS;
++		}
++		if(dom_elapsed >= DOMOFON_RETRY_AFTER_MS) {
++			if(dom_retries < DOMOFON_RETRIES) {
++				dom_retries++;
++				gpio_write(DOM_GPIO_HOOK, 0); // "click" the hook switch
++				dom_state = DOM_FLASH_UP;
++				return DOMOFON_FLASH_MS;
++			}
++			dom_state = DOM_KEY_ON; // give up waiting, try the key anyway
++			return 1;
++		}
++		return DOMOFON_TICK_MS;
++	case DOM_FLASH_UP:
++		gpio_write(DOM_GPIO_HOOK, 1);
++		dom_elapsed = 0;
++		dom_state = DOM_WAIT;
++		return DOMOFON_TICK_MS;
++	case DOM_KEY_ON:
+ 		gpio_write(DOM_GPIO_KEY, 1);
++		dom_state = DOM_KEY_OFF;
+ 		return DOMOFON_KEY_MS;
+-	case 1: // release key
++	case DOM_KEY_OFF:
+ 		gpio_write(DOM_GPIO_KEY, 0);
++		dom_state = DOM_HOOK_DOWN;
+ 		return DOMOFON_HOOK_POST_MS;
+ 	default: // put the handset down
+ 		gpio_write(DOM_GPIO_HOOK, 0);
+@@ -67,8 +124,11 @@ void domofon_open(void) {
+ 	g_sensorAppCtx.reportFlg = FLG_CHECK_REPORT;
+ 	gpio_write(DOM_GPIO_KEY, 0);
+ 	gpio_write(DOM_GPIO_HOOK, 1); // "lift the handset"
+-	dom_step = 0;
+-	dom_seq_timer = TL_ZB_TIMER_SCHEDULE(dom_seq_cb, NULL, DOMOFON_HOOK_PRE_MS);
++	dom_state = DOM_WAIT;
++	dom_ringing = dom_ring_within(DOMOFON_RING_ACTIVE_MS);
++	dom_retries = 0;
++	dom_elapsed = 0;
++	dom_seq_timer = TL_ZB_TIMER_SCHEDULE(dom_seq_cb, NULL, DOMOFON_TICK_MS);
+ 	dom_fast_poll(); // keep listening a bit longer
+ }
+ 
+diff --git a/src/domofon.h b/src/domofon.h
+index b4f1552..744b6c9 100644
+--- a/src/domofon.h
++++ b/src/domofon.h
+@@ -3,6 +3,7 @@
+ #if USE_DOMOFON
+ extern volatile u8 g_domofon_busy;
+ void domofon_ring_start(void);	// ring detected (PIR event) -> fast poll
+-void domofon_open(void);		// On command -> hook + key sequence
++void domofon_open(void);
++void domofon_ring_pulse(void);	// P8 active right now (called from task_pir)		// On command -> hook + key sequence
+ #endif
+ #endif
+diff --git a/src/sensor_pir.c b/src/sensor_pir.c
+index 9076ccb..b046543 100644
+--- a/src/sensor_pir.c
++++ b/src/sensor_pir.c
+@@ -74,6 +74,10 @@ static s32 occupancyTimerCb(void *arg) {
+ void task_pir(void) {
+ 	zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
+ 	u8 pir_on = gpio_read(GPIO_PIR)? PIR_ON : !PIR_ON;
++#if USE_DOMOFON
++	if(pir_on)
++		domofon_ring_pulse();
++#endif
+ #if USE_SENSOR_XBR818
+ 	/* XBR818 handles the hold time in hardware; delay==0 is valid. */
+ #else
+diff --git a/src/version_cfg.h b/src/version_cfg.h
+index 3fcb860..381b222 100644
+--- a/src/version_cfg.h
++++ b/src/version_cfg.h
+@@ -142,7 +142,7 @@
+ #define APP_BUILD				0x18	//BCD app build "0.4"
+ #elif USE_DOMOFON
+ #define APP_RELEASE				0x20	// domofon fork 20.00 (above devbis 11.00)
+-#define APP_BUILD				0x03
++#define APP_BUILD				0x04
+ #else
+ #define APP_RELEASE				0x01	//BCD app release "0.1"
+ #define APP_BUILD				0x40	//BCD app build "3.9"
+-- 
+2.43.0
+

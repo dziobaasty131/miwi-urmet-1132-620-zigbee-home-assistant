@@ -1,0 +1,61 @@
+From dc74c55bf5761ea963d7629a369ce6f3a44af03b Mon Sep 17 00:00:00 2001
+From: domofon-builder <builder@lab.local>
+Date: Mon, 9 Nov 2026 22:00:43 +0000
+Subject: [PATCH 2/5] domofon: hold hook 2 s before key, key 4 s (strike
+ releases only while held)
+
+Version 0x20013001. Also make GPIO_BAUDRATE overridable for debug builds.
+
+Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>
+---
+ src/board_lyws03mmc.h | 4 ++--
+ src/sws_printf.h      | 2 ++
+ src/version_cfg.h     | 2 +-
+ 3 files changed, 5 insertions(+), 3 deletions(-)
+
+diff --git a/src/board_lyws03mmc.h b/src/board_lyws03mmc.h
+index 77c52cc..c522713 100644
+--- a/src/board_lyws03mmc.h
++++ b/src/board_lyws03mmc.h
+@@ -18,8 +18,8 @@
+ #define DEF_OCCUPANCY_DELAY		3	// sec, ring held this long after last LED pulse
+ #define DEF_OCCUPANCY_THRES		0
+ #define DOMOFON_FAST_POLL_SEC	60	// fast polling after ring
+-#define DOMOFON_HOOK_PRE_MS		500
+-#define DOMOFON_KEY_MS			1000
++#define DOMOFON_HOOK_PRE_MS		2000
++#define DOMOFON_KEY_MS			4000
+ #define DOMOFON_HOOK_POST_MS	500
+ #define DOM_GPIO_HOOK			GPIO_PC4	// pcb "P9"
+ #define DOM_GPIO_KEY			GPIO_PD7	// pcb "P7"
+diff --git a/src/sws_printf.h b/src/sws_printf.h
+index 66bed6e..04257ce 100644
+--- a/src/sws_printf.h
++++ b/src/sws_printf.h
+@@ -57,7 +57,9 @@ void sws_buffer_flush(void);
+ 
+ #else // if GPIO_PRINTF_MODE
+ 
++#ifndef GPIO_BAUDRATE
+ #define GPIO_BAUDRATE	1000000 //1M
++#endif
+ 
+ #define sws_ready()
+ #define sws_buffer_flush()
+diff --git a/src/version_cfg.h b/src/version_cfg.h
+index b43d5b1..6d348ec 100644
+--- a/src/version_cfg.h
++++ b/src/version_cfg.h
+@@ -142,7 +142,7 @@
+ #define APP_BUILD				0x18	//BCD app build "0.4"
+ #elif USE_DOMOFON
+ #define APP_RELEASE				0x20	// domofon fork 20.00 (above devbis 11.00)
+-#define APP_BUILD				0x00
++#define APP_BUILD				0x01
+ #else
+ #define APP_RELEASE				0x01	//BCD app release "0.1"
+ #define APP_BUILD				0x40	//BCD app build "3.9"
+-- 
+2.43.0
+
+

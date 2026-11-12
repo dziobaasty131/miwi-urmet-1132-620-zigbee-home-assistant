@@ -1,0 +1,34 @@
+# Skrypt-blokada – wklej do scripts.yaml. Otwiera tylko, gdy ktoś dzwonił w ostatnich 60 s
+# i przy tym dzwonku jeszcze nie otwierano. „Podniesienie słuchawki” bez wywołania kończy się
+# błędem („Error”) na panelu na dole.
+# Uwaga: entity_id automatyzacji dzwonka HA tworzy z jej nazwy – sprawdź i popraw poniżej, jeśli inna.
+domofon_otworz:
+  alias: Domofon – otwórz (tylko w trakcie dzwonka)
+  mode: single
+  max_exceeded: silent
+  icon: mdi:door-open
+  sequence:
+  - if:
+    - condition: template
+      value_template: >-
+        {% set d = state_attr('automation.domofon_dzwonek_powiadomienie_z_przyciskiem_otworz', 'last_triggered') %}
+        {% set s = states.switch.domofon %}
+        {{ d is not none and s is not none
+           and (now() - d).total_seconds() < 60
+           and s.state == 'off'
+           and s.last_changed < d }}
+    then:
+    - action: switch.turn_on
+      target:
+        entity_id: switch.domofon
+    else:
+    - action: notify.mobile_app_TWOJ_TELEFON
+      data:
+        title: Domofon – nie otwieram
+        message: >-
+          {% set d = state_attr('automation.domofon_dzwonek_powiadomienie_z_przyciskiem_otworz', 'last_triggered') %}
+          {% if is_state('switch.domofon', 'on') %}Otwieranie już trwa.
+          {% elif d is none or (now() - d).total_seconds() >= 60 %}Nikt teraz nie dzwoni – zadzwoń z dołu i kliknij Otwórz w ciągu minuty.
+          {% else %}Przy tym dzwonku już otwierano (połączenie zakończone). Zadzwoń jeszcze raz.{% endif %}
+        data:
+          tag: domofon

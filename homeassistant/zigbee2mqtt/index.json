@@ -1,0 +1,12 @@
+[
+  {
+    "fileName": "1141-020a-20043001-Z03MMC.zigbee",
+    "fileVersion": 537145345,
+    "fileSize": 135858,
+    "url": "ota_domofon/1141-020a-20043001-Z03MMC.zigbee",
+    "imageType": 522,
+    "manufacturerCode": 4417,
+    "sha512": "ce83bd3e70a6ad1500d40ce40c026e6c89d5694f230265099895862daf9755be35e1bcb9042dc07d9d27ae3681eba86b0c27f9eeb7ddce5429c5012abcedbad8",
+    "otaHeaderString": "DIY:DOMOFON-z"
+  }
+]

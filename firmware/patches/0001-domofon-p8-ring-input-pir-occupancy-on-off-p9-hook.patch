@@ -1,0 +1,335 @@
+From bbacd7e59ec7bcb0fef2af3cf5b23efd693deb4c Mon Sep 17 00:00:00 2001
+From: domofon-builder <builder@lab.local>
+Date: Mon, 9 Nov 2026 12:30:40 +0000
+Subject: [PATCH 1/5] Domofon: P8 ring input (PIR/occupancy), On/Off -> P9 hook
+ + P7 key sequence, fast poll after ring, LCD forced off
+
+---
+ make_z/src.mk         |  1 +
+ src/app_main.c        |  4 +++
+ src/board_lyws03mmc.h | 47 +++++++++++++++++++++++++++
+ src/domofon.c         | 75 +++++++++++++++++++++++++++++++++++++++++++
+ src/domofon.h         |  8 +++++
+ src/lcd_lywsd03mmc.c  | 10 ++++++
+ src/sensor_pir.c      |  4 +++
+ src/version_cfg.h     |  3 ++
+ src/zcl_appCb.c       | 11 +++++++
+ 9 files changed, 163 insertions(+)
+ create mode 100644 src/domofon.c
+ create mode 100644 src/domofon.h
+
+diff --git a/make_z/src.mk b/make_z/src.mk
+index 351a56c..cfc9cc1 100644
+--- a/make_z/src.mk
++++ b/make_z/src.mk
+@@ -36,6 +36,7 @@ $(OUT_PATH)$(SRC_DIR)/battery.o \
+ $(OUT_PATH)$(SRC_DIR)/sensor_th.o \
+ $(OUT_PATH)$(SRC_DIR)/sensor_rh.o \
+ $(OUT_PATH)$(SRC_DIR)/sensor_pir.o \
++$(OUT_PATH)$(SRC_DIR)/domofon.o \
+ $(OUT_PATH)$(SRC_DIR)/zlx2lx.o \
+ $(OUT_PATH)$(SRC_DIR)/sensor_lx.o \
+ $(OUT_PATH)$(SRC_DIR)/sensor_xbr818.o \
+diff --git a/src/app_main.c b/src/app_main.c
+index 0dbc55c..3cb2931 100644
+--- a/src/app_main.c
++++ b/src/app_main.c
+@@ -26,6 +26,7 @@
+ #include "lcd.h"
+ #include "reporting.h"
+ #include "ext_ota.h"
++#include "domofon.h"
+ //#include "zcl_thermostat_ui_cfg.h"
+ #if USE_BLE
+ #include "ble_cfg.h"
+@@ -430,6 +431,9 @@ void app_task(void)
+ #endif // USE_SENSOR_TH
+ 		{
+ 			sws_buffer_flush();
++#if USE_DOMOFON
++			if(!g_domofon_busy)
++#endif
+ 			drv_pm_lowPowerEnter();
+ 		}
+ #endif // !USE_BLE
+diff --git a/src/board_lyws03mmc.h b/src/board_lyws03mmc.h
+index 421af52..77c52cc 100644
+--- a/src/board_lyws03mmc.h
++++ b/src/board_lyws03mmc.h
+@@ -11,7 +11,21 @@
+ 
+ #if (BOARD == BOARD_LYWSD03MMC)
+ 
++#if USE_DOMOFON
++/* Domofon: ring input P8 (PA6) via opto, outputs P9 (PC4) = hook, P7 (PD7) = key */
++#define DEV_SERVICES (SERVICE_ZIGBEE | SERVICE_OTA | SERVICE_SCREEN | SERVICE_THS | SERVICE_PIR)
++#define USE_REMOTE_ONOFF		1	// On/Off server = "open door" command
++#define DEF_OCCUPANCY_DELAY		3	// sec, ring held this long after last LED pulse
++#define DEF_OCCUPANCY_THRES		0
++#define DOMOFON_FAST_POLL_SEC	60	// fast polling after ring
++#define DOMOFON_HOOK_PRE_MS		500
++#define DOMOFON_KEY_MS			1000
++#define DOMOFON_HOOK_POST_MS	500
++#define DOM_GPIO_HOOK			GPIO_PC4	// pcb "P9"
++#define DOM_GPIO_KEY			GPIO_PD7	// pcb "P7"
++#else
+ #define DEV_SERVICES (SERVICE_ZIGBEE | SERVICE_OTA | SERVICE_SCREEN | SERVICE_THS)
++#endif
+ 
+ /* TLSR8251F512ET24
+ 
+@@ -54,7 +68,11 @@ GPIO_PD7 - free [B1.4], UART TX LCD [B1.6], pcb mark "P7"
+ #define BLE_MODEL_STR		"LYWSD03MMC"
+ #define BLE_MAN_STR			"miaomiaoce.com"
+ #define ZCL_BASIC_MFG_NAME	{6,'X','i','a','o','m','i'}
++#if USE_DOMOFON
++#define ZCL_BASIC_MODEL_ID	{9,'D','O','M','O','F','O','N','-','z'}
++#else
+ #define ZCL_BASIC_MODEL_ID	{12,'L','Y','W','S','D','0','3','M','M','C','-','z'}
++#endif
+ 
+ // Battery & RF Power
+ #define USE_BATTERY 	BATTERY_CR2032
+@@ -64,7 +82,9 @@ GPIO_PD7 - free [B1.4], UART TX LCD [B1.6], pcb mark "P7"
+ #define	USE_DISPLAY			1
+ #define LCD_BUF_SIZE		6
+ #define PULL_WAKEUP_SRC_PB6 PM_PIN_PULLUP_10K // LCD
++#if !USE_DOMOFON
+ #define PULL_WAKEUP_SRC_PD7	PM_PIN_PULLUP_1M // UART TX (B1.6)
++#endif
+ #define LCD_INIT_DELAY()	//pm_wait_ms(50)
+ #define USE_DISPLAY_OFF		1
+ #define USE_DISPLAY_CONNECT_SYMBOL		2 // =2 inverted
+@@ -106,6 +126,32 @@ GPIO_PD7 - free [B1.4], UART TX LCD [B1.6], pcb mark "P7"
+ #define GPIO_LCD_UTX 		UART_RX_PB7  // UART TX LCD old B1.6
+ #define GPIO_LCD_SDI 		GPIO_PB7  	 // SPI-SDI LCD new B1.6
+ 
++#if USE_DOMOFON
++// P7 (PD7) - output "key" opto LED, low = off
++#define PD7_FUNC			AS_GPIO
++#define PD7_INPUT_ENABLE	0
++#define PD7_OUTPUT_ENABLE	1
++#define PD7_DATA_OUT		0
++#define PULL_WAKEUP_SRC_PD7	PM_PIN_PULLDOWN_100K
++// P9 (PC4) - output "hook" opto LED, low = off
++#define PC4_FUNC			AS_GPIO
++#define PC4_INPUT_ENABLE	0
++#define PC4_OUTPUT_ENABLE	1
++#define PC4_DATA_OUT		0
++#define PULL_WAKEUP_SRC_PC4	PM_PIN_PULLDOWN_100K
++// P8 (PA6) - ring input, opto transistor pulls to GND
++#define GPIO_PIR			GPIO_PA6
++#define PIR_ON				0
++#define PIR_OFF				1
++#define PA6_FUNC			AS_GPIO
++#define PA6_OUTPUT_ENABLE	0
++#define PA6_INPUT_ENABLE	1
++#define PULL_WAKEUP_SRC_PA6	PM_PIN_PULLUP_10K
++// PB7 unused
++#define PB7_FUNC			AS_GPIO
++#define PB7_INPUT_ENABLE	1
++#define PULL_WAKEUP_SRC_PB7	PM_PIN_PULLUP_1M
++#else
+ #define PD7_FUNC			AS_GPIO
+ #define PD7_INPUT_ENABLE	1
+ #define PULL_WAKEUP_SRC_PD7	PM_PIN_PULLUP_1M
+@@ -113,6 +159,7 @@ GPIO_PD7 - free [B1.4], UART TX LCD [B1.6], pcb mark "P7"
+ #define PB7_FUNC			AS_GPIO
+ #define PB7_INPUT_ENABLE	1
+ #define PULL_WAKEUP_SRC_PB7	PM_PIN_PULLUP_1M
++#endif
+ 
+ 
+ // UART
+diff --git a/src/domofon.c b/src/domofon.c
+new file mode 100644
+index 0000000..b8a27d0
+--- /dev/null
++++ b/src/domofon.c
+@@ -0,0 +1,75 @@
++/* Domofon (intercom) add-on for ZigbeeTLc LYWSD03MMC B1.4
++ * P8 (PA6) ring input  -> Occupancy Sensing (reported immediately, wakes the chip)
++ * On/Off "On" command  -> P9 (PC4) hook 0.5 s -> P7 (PD7) key 1 s -> release 0.5 s
++ * After a ring the device polls its parent every 250 ms for DOMOFON_FAST_POLL_SEC.
++ */
++#include "tl_common.h"
++#if USE_DOMOFON
++#include "zb_api.h"
++#include "zcl_include.h"
++#include "app_main.h"
++#include "app_onoff.h"
++#include "domofon.h"
++
++volatile u8 g_domofon_busy;
++static ev_timer_event_t *dom_seq_timer;
++static ev_timer_event_t *dom_poll_timer;
++static u8 dom_step;
++
++extern void set_PollRate(void);
++
++static s32 dom_poll_restore_cb(void *arg) {
++	(void) arg;
++	if(g_domofon_busy)
++		return 0; // try again after the sequence
++	set_PollRate();
++	dom_poll_timer = NULL;
++	return -1;
++}
++
++static void dom_fast_poll(void) {
++	if(!zb_isDeviceJoinedNwk())
++		return;
++	zb_setPollRate(POLL_RATE_QUARTERSECONDS); // 250 ms
++	if(dom_poll_timer)
++		TL_ZB_TIMER_CANCEL(&dom_poll_timer);
++	dom_poll_timer = TL_ZB_TIMER_SCHEDULE(dom_poll_restore_cb, NULL, DOMOFON_FAST_POLL_SEC * 1000);
++}
++
++void domofon_ring_start(void) {
++	dom_fast_poll();
++}
++
++static s32 dom_seq_cb(void *arg) {
++	(void) arg;
++	switch(dom_step++) {
++	case 0: // hook is up -> press key
++		gpio_write(DOM_GPIO_KEY, 1);
++		return DOMOFON_KEY_MS;
++	case 1: // release key
++		gpio_write(DOM_GPIO_KEY, 0);
++		return DOMOFON_HOOK_POST_MS;
++	default: // put the handset down
++		gpio_write(DOM_GPIO_HOOK, 0);
++		g_zcl_onOffAttrs.onOff = 0;
++		g_sensorAppCtx.reportFlg = FLG_CHECK_REPORT;
++		g_domofon_busy = 0;
++		dom_seq_timer = NULL;
++		return -1;
++	}
++}
++
++void domofon_open(void) {
++	if(g_domofon_busy)
++		return;
++	g_domofon_busy = 1; // no deep sleep while outputs are driven
++	g_zcl_onOffAttrs.onOff = 1;
++	g_sensorAppCtx.reportFlg = FLG_CHECK_REPORT;
++	gpio_write(DOM_GPIO_KEY, 0);
++	gpio_write(DOM_GPIO_HOOK, 1); // "lift the handset"
++	dom_step = 0;
++	dom_seq_timer = TL_ZB_TIMER_SCHEDULE(dom_seq_cb, NULL, DOMOFON_HOOK_PRE_MS);
++	dom_fast_poll(); // keep listening a bit longer
++}
++
++#endif // USE_DOMOFON
+diff --git a/src/domofon.h b/src/domofon.h
+new file mode 100644
+index 0000000..b4f1552
+--- /dev/null
++++ b/src/domofon.h
+@@ -0,0 +1,8 @@
++#ifndef _DOMOFON_H_
++#define _DOMOFON_H_
++#if USE_DOMOFON
++extern volatile u8 g_domofon_busy;
++void domofon_ring_start(void);	// ring detected (PIR event) -> fast poll
++void domofon_open(void);		// On command -> hook + key sequence
++#endif
++#endif
+diff --git a/src/lcd_lywsd03mmc.c b/src/lcd_lywsd03mmc.c
+index 6bd2842..ef18ba4 100644
+--- a/src/lcd_lywsd03mmc.c
++++ b/src/lcd_lywsd03mmc.c
+@@ -437,6 +437,16 @@ void init_lcd(void){
+ 	pm_wait_us(110);
+ 	gpio_write(GPIO_PB6, 1);
+ */
++#if USE_DOMOFON
++	// Domofon: B1.4 only, LCD always off (~5 uA), never use UART/SPI LCD pins (PD7 = key output!)
++	scr.display_off = 1;
++	scr.i2c_address = B14_I2C_ADDR << 1;
++	lcd_send_i2c_buf((u8 *) lcd_init_cmd_b14, sizeof(lcd_init_cmd_b14));
++	lcd_send_i2c_buf((u8 *) lcd_init_clr_b14, sizeof(lcd_init_clr_b14));
++	memset(&scr.display_cmp_buff, 0, sizeof(scr.display_cmp_buff));
++	send_to_lcd();
++	return;
++#endif
+ 	scr.i2c_address = scan_i2c_addr(B14_I2C_ADDR << 1);
+ 	if (scr.i2c_address) { // B1.4, B1.7, B2.0
+ 		// pm_wait_ms(50); LCD_INIT_DELAY()
+diff --git a/src/sensor_pir.c b/src/sensor_pir.c
+index f92b4b7..9076ccb 100644
+--- a/src/sensor_pir.c
++++ b/src/sensor_pir.c
+@@ -19,6 +19,7 @@
+ #include "sensor_rc2417.h"
+ #endif
+ #include "app_ui.h"
++#include "domofon.h"
+ 
+ 
+ #if !USE_SENSOR_XBR818
+@@ -83,6 +84,9 @@ void task_pir(void) {
+ 			// PIR On
+ 			if(!zcl_occupAttr.state) {
+ 				// event On
++#if USE_DOMOFON
++				domofon_ring_start();
++#endif
+ #if USE_SENSOR_RC2417
+ 				rc2417_wake_and_start();
+ 				u8 occ = 0x01 | 0x02; // Bit 0: overall occupied, Bit 1: PIR motion
+diff --git a/src/version_cfg.h b/src/version_cfg.h
+index 99f849e..b43d5b1 100644
+--- a/src/version_cfg.h
++++ b/src/version_cfg.h
+@@ -140,6 +140,9 @@
+ #if USE_BLE
+ #define APP_RELEASE				0x00	//BCD app release "0.0"
+ #define APP_BUILD				0x18	//BCD app build "0.4"
++#elif USE_DOMOFON
++#define APP_RELEASE				0x20	// domofon fork 20.00 (above devbis 11.00)
++#define APP_BUILD				0x00
+ #else
+ #define APP_RELEASE				0x01	//BCD app release "0.1"
+ #define APP_BUILD				0x40	//BCD app build "3.9"
+diff --git a/src/zcl_appCb.c b/src/zcl_appCb.c
+index 3b6b262..d33bb1b 100644
+--- a/src/zcl_appCb.c
++++ b/src/zcl_appCb.c
+@@ -2,6 +2,8 @@
+  * INCLUDES
+  */
+ #include "tl_common.h"
++#include "domofon.h"
++#include "tl_common.h"
+ #include "zcl_include.h"
+ #include "zcl_thermostat_ui_cfg.h"
+ #include "app_main.h"
+@@ -1015,6 +1017,10 @@ void afTestOnOffCb(void *arg) {
+  * FUNCTIONS
+  */
+ void remoteCmdOnOff(u8 srcEp, u8 cmd) {
++#if USE_DOMOFON
++	(void) srcEp; (void) cmd;
++	return; // domofon: never send On/Off to bound devices
++#endif
+     if (zb_isDeviceJoinedNwk()) {
+ #if USE_REMOTE_ONOFF
+     	zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
+@@ -1057,6 +1063,11 @@ void remoteCmdOnOff(u8 srcEp, u8 cmd) {
+  */
+ void cmdOnOff_set(bool status) {
+ 	sws_printf("cmdOnOff_set(%d)\n", status);
++#if USE_DOMOFON
++	if(status)
++		domofon_open();
++	return;
++#endif
+ 	zcl_onOffAttr_t *pOnOff = zcl_onoffAttrGet();
+ 	if(pOnOff->onOff != status) {
+ 		pOnOff->onOff = status;
+-- 
+2.43.0
+
+

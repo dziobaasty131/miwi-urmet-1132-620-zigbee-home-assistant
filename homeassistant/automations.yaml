@@ -1,0 +1,74 @@
+# Automatyzacje domofonu – wklej do automations.yaml (albo przez edytor YAML w UI).
+# Zamień notify.mobile_app_TWOJ_TELEFON na swoją usługę powiadomień (aplikacja Home Assistant na telefonie).
+# Encje z Zigbee2MQTT przy nazwie urządzenia „Domofon”: binary_sensor.domofon_occupancy, switch.domofon.
+
+- id: domofon_dzwonek_powiadomienie
+  alias: Domofon – dzwonek (powiadomienie z przyciskiem Otwórz)
+  description: Dzwonek z unifonu → push z przyciskiem „Otwórz” (komenda dochodzi od razu przez ~60 s po dzwonku)
+  mode: single
+  max_exceeded: silent
+  triggers:
+  - trigger: state
+    entity_id: binary_sensor.domofon_occupancy
+    from: 'off'
+    to: 'on'
+  actions:
+  - action: notify.mobile_app_TWOJ_TELEFON
+    data:
+      title: Domofon 🔔
+      message: Ktoś przy klatce
+      data:
+        tag: domofon
+        push:                       # iOS; na Androidzie usuń sekcję push
+          interruption-level: time-sensitive
+          sound:
+            name: default
+            critical: 1
+            volume: 0.3
+        actions:
+        - action: DOMOFON_OTWORZ
+          title: Otwórz drzwi 🔓
+        - action: DOMOFON_IGNORUJ
+          title: Ignoruj 🚫
+          destructive: true
+  - delay: 00:00:20
+
+- id: domofon_otworz_z_powiadomienia
+  alias: Domofon – Otwórz z powiadomienia
+  mode: single
+  triggers:
+  - trigger: event
+    event_type: mobile_app_notification_action
+    event_data:
+      action: DOMOFON_OTWORZ
+  actions:
+  - action: script.domofon_otworz
+  - action: notify.mobile_app_TWOJ_TELEFON
+    data:
+      message: clear_notification
+      data:
+        tag: domofon
+
+- id: domofon_brak_lacznosci
+  alias: Domofon – brak łączności (15 min)
+  description: Każda wiadomość MQTT od domofonu (co ≤5 min) restartuje odliczanie. Cisza > 15 min = bateria / zasięg / zawieszenie.
+  mode: restart
+  triggers:
+  - trigger: mqtt
+    topic: zigbee2mqtt/Domofon
+  - trigger: homeassistant
+    event: start
+  actions:
+  - delay:
+      minutes: 15
+  - condition: state
+    entity_id: binary_sensor.zigbee2mqtt_bridge_connection_state
+    state: 'on'
+  - action: notify.mobile_app_TWOJ_TELEFON
+    data:
+      title: Domofon nie odpowiada ⚠️
+      message: >-
+        Brak sygnału od {{ (now() - timedelta(minutes=15)).strftime('%H:%M') }}.
+        Zewrzyj Reset z GND na 1 s albo wyjmij i włóż baterię.
+      data:
+        tag: domofon_lacznosc
