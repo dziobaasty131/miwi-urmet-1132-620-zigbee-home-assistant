@@ -1,9 +1,13 @@
 # Montaż domofonu Zigbee – Miwi-Urmet 1132/620
 
-Ten poradnik opisuje **konkretny, przetestowany egzemplarz** Miwi-Urmet 1132/620 (starsza rewizja płytki) oraz sterownik oparty na Xiaomi LYWSD03MMC HW B1.4. Powstał na podstawie pomiarów i schematów zamieszczonych w [dokumentacji PDF](domofon-miwi-urmet-home-assistant.pdf).
+Ten poradnik opisuje **konkretny, przetestowany egzemplarz** Miwi-Urmet 1132/620 (starsza rewizja płytki) oraz sterownik oparty na Xiaomi LYWSD03MMC HW B1.4. **Sterownik jest zasilany z baterii CR2032 termometru i nie wymaga żadnego dodatkowego zasilacza ani doprowadzania zasilania z domofonu.** Powstał na podstawie pomiarów i schematów zamieszczonych w [dokumentacji PDF](domofon-miwi-urmet-home-assistant.pdf).
 
 > [!CAUTION]
 > **Nie podłączaj się do L+ ani L− w instalacji budynku.** W opisywanym systemie jest to wspólna magistrala cyfrowa (w pomiarach około 11,5 V). Próba wykorzystania L+ do wykrywania sygnału zakłóciła pracę całego systemu. Wszystkie połączenia sterownika wykonano po stronie elementów unifonu, zgodnie ze schematami. Przed pracą odłącz unifon od instalacji. Jeśli nie masz pewności, jak zweryfikować styki, nie montuj układu metodą prób i błędów.
+
+## Zasilanie — dlaczego ten projekt nie potrzebuje zasilacza?
+
+Elektronika sterownika i komunikacja Zigbee korzystają z **baterii CR2032 w Xiaomi LYWSD03MMC**. Połączenia do unifonu służą do wykrywania dzwonka i sterowania jego istniejącymi funkcjami, **nie do zasilania termometru**. Nie podłączaj zasilania z magistrali budynku. Firmware ogranicza pobór energii, m.in. wyłączając wyświetlacz i zmieniając aktywność urządzenia po dzwonku. Nie ma jeszcze opublikowanego, wiarygodnego pomiaru żywotności jednej baterii.
 
 ## 1. Zanim zaczniesz
 
@@ -30,25 +34,7 @@ Zmierzone połączenia przełącznika widełkowego **od strony spodniej**:
 
 W opisywanej płytce pin 3 jest połączony z masą unifonu (blaszką przycisku), a pin 5 z czerwonym przewodem głośnika. **Nie trzeba przecinać ścieżek ani usuwać oryginalnych elementów**.
 
-### Zdjęcia montażu — co udało się ustalić
-
-Użytkownik udokumentował **obie strony oryginalnej płytki Miwi-Urmet 1132/620** oraz stronę lutowania termometru Xiaomi LYWSD03MMC. Na fotografii z przylutowanymi przewodami oryginalna płytka unifonu jest pokazana **od strony ścieżek**, ze złączami/przewodami widocznymi w górnej części kadru. Przewody sterownika są dołączone do istniejących punktów lutowniczych, bez przecinania ścieżek.
-
-**Po stronie termometru** (widok płytki od strony lutowania, nadruki czytelne) da się rozpoznać następujące połączenia:
-
-| Przewód widoczny na zdjęciu | Punkt na płytce termometru | Funkcja według schematu |
-|---|---|---|
-| Żółty | **P9** (górna lewa część zdjęcia) | Sterowanie widełkami |
-| Czarny | **GND** (prawa górna część) | Masa układu |
-| Czerwony | **P8** (dolna lewa część) | Wejście dzwonka |
-| Niebieski | **P7** (dolna prawa część) | Sterowanie otwieraniem |
-
-Te pozycje odnoszą się **wyłącznie do orientacji na otrzymanym zdjęciu**. Punkt SWS/P14 pozostaje niewykorzystany na fotografiach.
-
-**Po stronie unifonu** widać dodatkowe przewody przylutowane do istniejących styków po obu stronach płytki. Nie wszystkie ich końce i przebieg można odtworzyć z pojedynczych fotografii. Dlatego nie przypisujemy przewodom kolorów do funkcji bez weryfikacji miernikiem i porównania z rysunkami z PDF-u.
-
-**Status zdjęć:** fotografie zostały dostarczone do analizy, ale nie zostały jeszcze umieszczone jako pliki w repozytorium. Po ich dodaniu należy tutaj osadzić oznaczone kadry obu stron unifonu oraz termometru. Nie należy traktować powyższego opisu jako alternatywy dla sprawdzenia połączeń. 
-
+Punkty lutowania należy ustalić na podstawie schematów i własnych pomiarów. Fotografie z niezweryfikowanymi oznaczeniami nie są częścią tej instrukcji.
 
 ## 3. Podłącz wykrywanie dzwonka
 
