@@ -83,18 +83,20 @@ W repozytorium znajdują się:
 
 ### Samodzielna kompilacja
 
-Projekt bazuje na commicie `c915b52` ZigbeeTLc. Poniższe polecenia uruchom z katalogu nadrzędnego, w którym znajduje się sklonowane repozytorium z patchami. Dzięki temu ścieżka `../firmware/patches/` będzie poprawna tylko wtedy, gdy odpowiednio przygotujesz układ katalogów. W przeciwnym razie podaj pełną ścieżkę do plików `.patch`:
+Projekt bazuje na commicie `c915b52` ZigbeeTLc. Sklonuj oba repozytoria **obok siebie** i nałóż patche z tego projektu:
 
 ```bash
-git clone https://github.com/pvvx/ZigbeeTLc.git && cd ZigbeeTLc
+git clone https://github.com/dziobaasty131/miwi-urmet-1132-620-zigbee-home-assistant.git
+git clone https://github.com/pvvx/ZigbeeTLc.git
+cd ZigbeeTLc
 git checkout -b domofon c915b52
-git am ../firmware/patches/*.patch
+git am ../miwi-urmet-1132-620-zigbee-home-assistant/firmware/patches/*.patch
 make -s -j8 VERSION_BIN=_domofon PROJECT_NAME=Z03MMC \
   POJECT_DEF="-DBOARD=BOARD_LYWSD03MMC -DUSE_DOMOFON=1" \
   ZNAME="DIY:DOMOFON-z" PYTHON=python3 BIN_PATH=./out_domofon
 ```
 
-Do kompilacji wymagany jest toolchain Telink opisany w dokumentacji ZigbeeTLc. **Uwaga:** polecenie `git am` zakłada, że folder `firmware/patches/` znajduje się obok sklonowanego katalogu `ZigbeeTLc`.
+Do kompilacji wymagany jest toolchain Telink opisany w dokumentacji ZigbeeTLc. Powyższa procedura koryguje ścieżkę do patchy; **nie została jeszcze zweryfikowana pełną kompilacją** w tym środowisku.
 
 **Sumy kontrolne SHA-256** udostępnionych obrazów:
 
