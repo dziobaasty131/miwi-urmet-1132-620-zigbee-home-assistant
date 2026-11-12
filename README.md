@@ -155,6 +155,11 @@ To opis działającego prototypu, **nie uniwersalna instrukcja dla wszystkich in
 
 ## Autorzy i licencje
 
-Projekt wykorzystuje [ZigbeeTLc autorstwa pvvx](https://github.com/pvvx/ZigbeeTLc) — podziękowania za udostępnienie firmware i dokumentacji.
+Ten projekt opiera się na [ZigbeeTLc autorstwa pvvx](https://github.com/pvvx/ZigbeeTLc), w wersji bazowej `c915b52`. Dziękujemy autorowi za udostępnienie firmware.
 
-Pliki tego repozytorium są opisane w [LICENSE](LICENSE). Modyfikacje firmware bazują na ZigbeeTLc i podlegają również warunkom licencyjnym projektu źródłowego.
+**Co obejmują poszczególne licencje?**
+
+- **Oryginalne ZigbeeTLc:** obowiązuje licencja autora projektu źródłowego. Jej pełny tekst umieściliśmy w [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
+- **Modyfikacje dla domofonu i oryginalne materiały tego repozytorium:** MIT, w zakresie praw przysługujących autorowi tych zmian — zobacz [LICENSE](LICENSE).
+- **Gotowe obrazy `.bin` i `.zigbee`:** zawierają kod bazowy ZigbeeTLc oraz zmiany wykonane na potrzeby domofonu. Sama licencja MIT tego repozytorium nie oznacza przejęcia autorstwa kodu pvvx.
+
