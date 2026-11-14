@@ -1,96 +1,112 @@
-# Domofon Miwi-Urmet 1132/620 z Zigbee i Home Assistant
+# Domofon Miwi-Urmet 1132/620 → Zigbee + Home Assistant
 
-**Powiadomienie o dzwonku na telefon, otwieranie drzwi jednym dotknięciem i zero dodatkowego zasilania.** Cały sterownik działa na oryginalnej baterii **CR2032 termometru Xiaomi** — bez zasilacza, kabla USB czy doprowadzania osobnego przewodu zasilającego. Oryginalny unifon nadal działa normalnie.
+**Stary domofon, powiadomienie na telefon i otwieranie drzwi jednym dotknięciem. Bez wymiany unifonu i bez dodatkowego zasilania.** 🔋
 
-Sercem projektu jest… bateryjny termometr **Xiaomi LYWSD03MMC**. Po zmianie oprogramowania na zmodyfikowany [ZigbeeTLc](https://github.com/pvvx/ZigbeeTLc) działa jako sterownik domofonu. Potrzeba jeszcze kilku prostych elementów elektronicznych.
+Cały sterownik działa na **jednej baterii CR2032**, tej samej, która normalnie zasila termometr **Xiaomi LYWSD03MMC**. Po wgraniu zmodyfikowanego firmware ZigbeeTLc i dołożeniu kilku prostych elementów termometr potrafi wykryć dzwonek, powiadomić Home Assistant i zdalnie uruchomić otwieranie drzwi.
 
-Projekt powstał dla **Miwi-Urmet 1132/620 (starsza wersja płytki)**. Nie zakładaj, że oznaczenia styków będą takie same w innym unifonie.
+Oryginalna słuchawka oraz przycisk otwierania nadal działają jak wcześniej. Nie trzeba prowadzić przewodu zasilającego ani pobierać zasilania z magistrali budynku.
 
-**[Instrukcja montażu krok po kroku](docs/MONTAZ.md)** · [Dokumentacja ze schematami (PDF)](docs/domofon-miwi-urmet-home-assistant.pdf)
+> [!NOTE]
+> Projekt został zbudowany i przetestowany na **Miwi-Urmet 1132/620 (starsza rewizja płytki)** oraz **Xiaomi LYWSD03MMC HW B1.4**. Inne rewizje mogą mieć inne połączenia. **Żywotność CR2032 jest nadal testowana** — nie ma jeszcze wiarygodnego wyniku długoterminowego.
 
-![Schemat blokowy całego układu](docs/img/s_blokowy.png)
+## Zobacz, jak to działa
 
-## Największa zaleta: zasilanie z jednej CR2032
+1. Ktoś dzwoni przy wejściu do budynku.
+2. Home Assistant wysyła na telefon powiadomienie **„Ktoś przy klatce”** z akcją **„Otwórz drzwi”**.
+3. Po kliknięciu sterownik elektronicznie „podnosi słuchawkę”, czeka na odebranie połączenia przez centralę, naciska przycisk otwierania i „odkłada słuchawkę”.
+4. Wszystko odbywa się bez dotykania unifonu. Nadal można korzystać z niego zupełnie normalnie.
 
-Sterownik wykorzystuje **baterię zamontowaną w termometrze Xiaomi LYWSD03MMC**. Nie trzeba szukać zasilania wewnątrz domofonu, montować przetwornicy ani prowadzić dodatkowych przewodów. Dzięki Zigbee i zmodyfikowanemu firmware urządzenie może oszczędzać energię między wywołaniami, a po dzwonku przez około 60 sekund częściej odbierać polecenia.
+![Schemat działania: unifon, termometr Xiaomi, Zigbee2MQTT, Home Assistant i telefon](docs/img/s_blokowy.png)
 
-**Czas pracy na jednej baterii nie został jeszcze udokumentowany pomiarami długoterminowymi** — nie podajemy więc obietnic w miesiącach czy latach. Instalacja nie wymaga jednak żadnego dodatkowego źródła zasilania sterownika.
+### Zdjęcia gotowego układu
 
-## Co potrafi?
+| Domofon po przeróbce | Dodatkowa płytka sterująca |
+|:---:|:---:|
+| ![Domofon z zamontowanym sterownikiem Xiaomi i dodatkową elektroniką](docs/img/unifon.jpg) | ![Płytka uniwersalna z elementami układu sterowania](docs/img/plytka.jpg) |
 
-- **Działa na baterii CR2032, bez dodatkowego zasilania sterownika.**
-- Wykrywa dzwonek domofonu i wysyła powiadomienie przez Home Assistant.
-- Pozwala otworzyć drzwi bezpośrednio z powiadomienia na telefonie.
-- Elektronicznie symuluje podniesienie słuchawki i naciśnięcie przycisku otwierania.
-- Pozostawia normalne działanie oryginalnego unifonu.
-- Pilnuje, żeby polecenie otwarcia można było wykonać tylko w określonym czasie po dzwonku.
-- Umożliwia monitorowanie łączności urządzenia w Home Assistant.
+[Zobacz również tylną stronę oryginalnej płytki unifonu z przylutowanymi przewodami](docs/img/unifon_lutowania.jpeg).
 
-## Jak to działa?
+## Co wyróżnia ten projekt?
 
-1. Gość naciska przycisk przy wejściu. Układ wykrywa dzwonek, a **Home Assistant wysyła powiadomienie z przyciskiem „Otwórz drzwi”**.
-2. Po naciśnięciu przycisku sterownik zwiera styki przełącznika widełkowego, symulując podniesienie słuchawki.
-3. Sterownik czeka na ustanie sygnału dzwonka, co pozwala rozpoznać odebranie połączenia.
-4. Następnie na **4 sekundy** uruchamia obwód otwierania drzwi i przywraca unifon do stanu spoczynku.
-
-Otwieranie rozpoczyna się zwykle po około **2–3 sekundach od wydania polecenia**. Cała sekwencja trwa dłużej, bo sterownik musi jeszcze zakończyć naciskanie przycisku i „odłożyć” słuchawkę.
-
-| Unifon po przeróbce | Elektronika sterująca |
+| Funkcja | Jak to działa? |
 |---|---|
-| ![Unifon po modyfikacji](docs/img/unifon.jpg) | ![Płytka sterownika](docs/img/plytka.jpg) |
+| 🔋 **Zasilanie bateryjne** | Sterownik korzysta z CR2032 w termometrze — **bez zasilacza, USB i dodatkowego przewodu zasilającego**. |
+| 🔔 **Wykrywanie dzwonka** | Sygnał wywołania jest odczytywany z obwodu głośnika słuchawki. |
+| 📱 **Powiadomienie na telefonie** | Home Assistant wysyła powiadomienie z przyciskiem otwarcia drzwi. |
+| 🔓 **Zdalne otwieranie** | Układ symuluje podniesienie słuchawki i naciśnięcie przycisku w unifonie. |
+| 🏠 **Bez utraty oryginalnych funkcji** | Słuchawka i fizyczne przyciski nadal działają. |
+| 🛡️ **Zabezpieczenie w Home Assistant** | Przykładowy skrypt dopuszcza otwieranie do 60 s po dzwonku i tylko raz dla jednego wywołania. |
+| 📶 **Zigbee2MQTT** | Stan dzwonka, polecenie otwarcia, bateria i diagnostyka są dostępne w Zigbee2MQTT. |
 
-## Co będzie potrzebne?
+Firmware oszczędza energię m.in. przez wyłączenie wyświetlacza. Po wykryciu dzwonka urządzenie przez około **60 sekund** częściej komunikuje się z koordynatorem, aby polecenie otwarcia mogło dotrzeć szybko.
 
-| Element | Ilość | Zastosowanie |
+**Uwaga:** działanie na baterii zostało potwierdzone w praktyce, ale nie oznacza to jeszcze potwierdzonego czasu pracy przez wiele miesięcy.
+
+## Jak zbudować własny egzemplarz?
+
+Nie musisz od razu zagłębiać się w kod źródłowy. Dokumentacja jest podzielona na etapy — można przejść przez nią po kolei.
+
+| Etap | Co zrobić | Instrukcja |
+|---|---|---|
+| **1. Firmware** | Przygotuj Xiaomi LYWSD03MMC i wgraj oprogramowanie domofonu przez BLE → Zigbee OTA albo przewodowo przez SWS. | **[Wgrywanie firmware krok po kroku](docs/FIRMWARE.md)** |
+| **2. Elektronika** | Zmontuj prosty układ z transoptorów, tranzystorów i rezystorów. | **[Montaż i schematy połączeń](docs/MONTAZ.md)** |
+| **3. Integracja** | Dodaj konwerter Zigbee2MQTT, automatyzacje i skrypt otwierania do Home Assistant. | **[Gotowe pliki Home Assistant](homeassistant/)** |
+| **4. Testy** | Zweryfikuj dzwonek, podnoszenie słuchawki, otwieranie i działanie oryginalnego unifonu. | **[Testy i rozwiązywanie problemów](docs/MONTAZ.md#9-jeśli-coś-nie-działa)** |
+
+> [!TIP]
+> **Masz termometr z fabrycznym firmware?** Zacznij od [instrukcji wgrywania](docs/FIRMWARE.md). W niektórych wersjach można przejść na Zigbee przez Bluetooth bez lutowania programatora. Jeśli termometr ma już ZigbeeTLc, modyfikację domofonową można wgrać przez OTA. W wariancie przewodowym używany jest interfejs **SWS/SWire**, a nie zwykły UART TX/RX.
+
+### Lista elementów
+
+| Element | Ilość | Rola |
 |---|---:|---|
-| Xiaomi LYWSD03MMC (testowana wersja sprzętowa B1.4) | 1 | Sterownik Zigbee |
-| Transoptor EL817C lub PC817 | 2 | Wykrywanie dzwonka (U1) i sterowanie widełkami (U3) |
+| **Xiaomi LYWSD03MMC** (testowany HW B1.4) | 1 | Bateryjny sterownik Zigbee |
+| Transoptor EL817C / PC817 | 2 | Wykrywanie dzwonka i sterowanie widełkami |
 | Tranzystor BC547 lub odpowiedni małosygnałowy NPN | 2 | Sterowanie widełkami i przyciskiem otwierania |
 | Rezystor 1 kΩ | 1 | Obwód wykrywania dzwonka |
-| Rezystor 330 Ω | 2 | Sterowanie U3 i tranzystorem otwierania |
-| Dioda 1N4148 | 1 | Zabezpieczenie diody wejściowej U1 |
+| Rezystor 330 Ω | 2 | Sterowanie transoptorem i tranzystorem |
+| Dioda 1N4148 | 1 | Ochrona wejścia wykrywania dzwonka |
+| Płytka uniwersalna, przewody | według potrzeb | Montaż układu w obudowie unifonu |
 
-## Podłączenie do unifonu
+Do montażu potrzebne są też lutownica i multimetr. **Pełne schematy i opis sprawdzonych punktów połączeń** znajdziesz w [instrukcji montażu](docs/MONTAZ.md) oraz [PDF-ie](docs/domofon-miwi-urmet-home-assistant.pdf).
 
-Poniższe połączenia dotyczą przetestowanego egzemplarza **Miwi-Urmet 1132/620**. Przed lutowaniem sprawdź swoją wersję płytki i porównaj ją ze schematami.
+## Połączenia — w skrócie
 
-| Funkcja | Wyprowadzenie termometru | Podłączenie w unifonie | Schemat |
-|---|---|---|---|
-| Wykrywanie dzwonka | **P8 (PA6)** – wejście aktywne stanem niskim | Czerwony i zielony przewód głośnika słuchawki | [Dzwonek](docs/img/s_dzwonek.png) |
-| Symulacja podniesienia słuchawki | **P9 (PC4)** | Styki **2 i 4** przełącznika widełkowego | [Widełki](docs/img/s_widelki.png) |
-| Otwieranie drzwi | **P7 (PD7)** | Nit (+) i blaszka (masa) przycisku otwierania | [Przycisk](docs/img/s_klucz.png) |
+To jedynie mapa funkcji. **Nie zastępuje schematów elektrycznych ani pomiarów konkretnej płytki.**
 
-Masa termometru jest połączona z blaszką przycisku, czyli masą unifonu. **P14 (SWS)** pozostaw dostępny — służy do przewodowego wgrywania firmware.
+| Funkcja | Pad termometru | Miejsce podłączenia w testowanym unifonie |
+|---|---|---|
+| Wykrywanie dzwonka | **P8 / PA6** | Przewody głośnika słuchawki — przez obwód transoptora |
+| „Podniesienie słuchawki” | **P9 / PC4** | Styki **2–4** przełącznika widełek — przez układ transoptora i tranzystora |
+| Otwieranie drzwi | **P7 / PD7** | Styki przycisku otwierania — przez tranzystor |
+| Masa sterownika | **GND** | Masa unifonu przy blaszce przycisku |
+| Programowanie przewodowe | **P14 / SWS** | Pad programowania — pozostaw dostępny |
 
-> [!WARNING]
-> **Nie podłączaj niczego do zacisku L+.** W tej instalacji jest to magistrala komunikacyjna budynku, a nie punkt zasilania. Podczas prób pobrania z niej sygnału komunikacja przestała działać, a panel wejściowy wyświetlił błąd „error”. Błędne podłączenie może zakłócić działanie domofonów również u sąsiadów.
+> [!CAUTION]
+> **Nie podłączaj sterownika do zacisków L+ / L− magistrali budynku.** Podczas prób w testowanej instalacji ingerencja w L+ zakłóciła działanie centrali i wywołała błąd panelu wejściowego. To wspólna instalacja, więc błędne podłączenie może dotknąć również sąsiadów. Przed montażem sprawdź styki miernikiem i odłącz unifon od instalacji.
 
-## Oprogramowanie sterownika
+## Firmware i pliki do pobrania
 
-Firmware bazuje na projekcie [pvvx/ZigbeeTLc](https://github.com/pvvx/ZigbeeTLc). Dodano obsługę dzwonka, przełącznika widełkowego i przycisku otwierania. Zmiany obejmują około 240 linii w 10 plikach, w tym nowe `src/domofon.c` i `src/domofon.h`.
+Oprogramowanie powstało jako modyfikacja [pvvx/ZigbeeTLc](https://github.com/pvvx/ZigbeeTLc), oparta na commicie **`c915b52`**. Kod obsługi domofonu dodaje wykrywanie wywołania, sekwencję otwierania, obsługę problemów z przełącznikiem widełkowym i zarządzanie aktywnością urządzenia.
 
-W repozytorium znajdują się:
-
-| Ścieżka | Zawartość |
+| Plik | Zastosowanie |
 |---|---|
-| `firmware/patches/` | Pięć patchy Git do nałożenia na wersję bazową `c915b52` |
-| `firmware/domofon-vs-upstream-c915b52.diff` | Te same modyfikacje zapisane w jednym pliku diff |
-| `firmware/bin/Z03MMC_domofon.bin` | Firmware do wgrywania przewodowego / przez TelinkMiFlasher |
-| `firmware/bin/1141-020a-20043001-Z03MMC.zigbee` | Firmware OTA dla Zigbee2MQTT (wersja `0x20043001`) |
+| [`Z03MMC_domofon.bin`](firmware/bin/Z03MMC_domofon.bin) | Obraz do programowania przewodowego przez SWS |
+| [`1141-020a-20043001-Z03MMC.zigbee`](firmware/bin/1141-020a-20043001-Z03MMC.zigbee) | Obraz aktualizacji OTA dla Zigbee2MQTT |
+| [`firmware/patches/`](firmware/patches/) | Pięć patchy Git dla ZigbeeTLc |
+| [`firmware/domofon-vs-upstream-c915b52.diff`](firmware/domofon-vs-upstream-c915b52.diff) | Zbiorczy diff względem upstreamu |
 
-### Wgrywanie firmware
+**Instrukcja instalacji firmware:** [BLE, Zigbee OTA i programowanie SWS](docs/FIRMWARE.md).
 
-**Jeśli termometr ma już ZigbeeTLc**, można skorzystać z aktualizacji OTA w Zigbee2MQTT:
+### Jak działa otwieranie?
 
-1. Umieść plik `.zigbee` oraz `homeassistant/zigbee2mqtt/index.json` w katalogu `ota_domofon/` obok konfiguracji Zigbee2MQTT.
-2. W konfiguracji Zigbee2MQTT wskaż plik indeksu OTA. Używane w projekcie ustawienie to `ota.zigbee_ota_override_index_location: ota_domofon/index.json`.
-3. Uruchom aktualizację urządzenia. W przeprowadzonych testach zajmowała około **25 minut**.
+Sterownik zwiera styki 2–4 („podnosi słuchawkę”), co **100 ms** sprawdza, czy dzwonek ustał, a po wykryciu odebrania uruchamia przycisk otwierania na **4 sekundy**. Następnie zwalnia widełki. Jeśli mechanizm nie zadziała prawidłowo, firmware może ponowić przełączenie widełek (maksymalnie dwie próby).
 
-**Jeśli termometr ma fabryczny firmware**, najpierw przeprowadź instalację ZigbeeTLc zgodnie z [instrukcjami autora](https://github.com/pvvx/ZigbeeTLc). Potem wykonaj aktualizację OTA opisaną powyżej. Plik `Z03MMC_domofon.bin` jest przeznaczony do wgrywania przewodowego przez SWS.
+Czasy i szczegóły sekwencji opisano w [dokumentacji montażu i pomiarów](docs/domofon-miwi-urmet-home-assistant.pdf). Konfiguracja firmware znajduje się m.in. w `src/board_lyws03mmc.h` po nałożeniu patchy.
 
 ### Samodzielna kompilacja
 
-Projekt bazuje na commicie `c915b52` ZigbeeTLc. Sklonuj oba repozytoria **obok siebie** i nałóż patche z tego projektu:
+Jeśli chcesz coś zmienić w firmware, sklonuj **oba repozytoria obok siebie** i nałóż patche na właściwą wersję ZigbeeTLc:
 
 ```bash
 git clone https://github.com/dziobaasty131/miwi-urmet-1132-620-zigbee-home-assistant.git
@@ -103,63 +119,51 @@ make -s -j8 VERSION_BIN=_domofon PROJECT_NAME=Z03MMC \
   ZNAME="DIY:DOMOFON-z" PYTHON=python3 BIN_PATH=./out_domofon
 ```
 
-Do kompilacji wymagany jest toolchain Telink opisany w dokumentacji ZigbeeTLc. Powyższa procedura koryguje ścieżkę do patchy; **nie została jeszcze zweryfikowana pełną kompilacją** w tym środowisku.
+Kompilacja wymaga toolchainu Telink opisanego w ZigbeeTLc. **Ten zestaw poleceń nie był ponownie sprawdzany pełną kompilacją podczas redakcji dokumentacji.** Jeśli chcesz tylko uruchomić projekt, skorzystaj z gotowych obrazów firmware.
 
-**Sumy kontrolne SHA-256** udostępnionych obrazów:
+<details>
+<summary>Sumy kontrolne obrazów firmware (SHA-256)</summary>
 
 ```text
 59ed7929cebf7cf468276326f5630b1118c164847b2ef48809e854a7fa9e4d6e  Z03MMC_domofon.bin
 255a72d274bb0a41affa6561dce3be4260f697fce127411b0b5f4e0940920d75  1141-020a-20043001-Z03MMC.zigbee
 ```
 
-### Co dokładnie robi firmware podczas otwierania?
+</details>
 
-| Etap | Zachowanie sterownika |
+## Home Assistant i Zigbee2MQTT
+
+Firmware zgłasza się w Zigbee2MQTT jako **`DOMOFON-z`**. W projekcie przygotowano przykładowe pliki do uruchomienia powiadomień i otwierania:
+
+| Plik | Co robi? |
 |---|---|
-| Podniesienie słuchawki | Zwiera styki 2–4 |
-| Wykrycie odebrania | Co 100 ms sprawdza dzwonek; po co najmniej 1 s od podniesienia uznaje ciszę trwającą ≥ 1,2 s za odebranie |
-| Otwarcie drzwi | Czeka 0,3 s, uruchamia przycisk na 4 s, czeka kolejne 0,5 s i zwalnia widełki |
-| Próba naprawienia problemu z widełkami | Jeśli po 2,5 s dzwonek nadal działa, zwalnia widełki na 0,4 s i podnosi je ponownie; maksymalnie 2 próby |
-| Brak sygnału dzwonka w chwili polecenia | Uruchamia przycisk po 3 s |
+| [Konwerter Zigbee2MQTT](homeassistant/zigbee2mqtt/external_converters/domofon.mjs) | Udostępnia odczyt dzwonka (`occupancy`), sterowanie (`state`), baterię i pomiary |
+| [Automatyzacje](homeassistant/automations.yaml) | Wysyłają powiadomienie na telefon z przyciskiem „Otwórz” i alarmują o utracie łączności |
+| [Skrypt otwierania](homeassistant/scripts.yaml) | Sprawdza, czy dzwonek wystąpił w ostatnich 60 sekundach i czy przy tym wywołaniu nie otwierano już drzwi |
+| [Indeks aktualizacji OTA](homeassistant/zigbee2mqtt/index.json) | Wskazuje lokalny obraz firmware do Zigbee2MQTT |
 
-Czasy można zmieniać w `src/board_lyws03mmc.h` (stałe `DOMOFON_*`).
+Przed użyciem **podmień `notify.mobile_app_TWOJ_TELEFON` i zweryfikuj identyfikatory encji** w swoim Home Assistant. Przykładowe automatyzacje zakładają konkretną nazwę urządzenia i temat MQTT.
 
-Po wykryciu dzwonka urządzenie przez 60 sekund częściej sprawdza komunikację z koordynatorem Zigbee, aby szybciej odebrać polecenie otwarcia. Wyświetlacz termometru jest wyłączony w celu ograniczenia poboru energii z baterii CR2032.
+## Dokumentacja
 
-## Integracja z Home Assistant
+- 📘 **[Montaż krok po kroku](docs/MONTAZ.md)** — elementy, pomiary, schematy, zdjęcie rzeczywistych lutowań, testy i diagnostyka.
+- 💾 **[Wgrywanie firmware](docs/FIRMWARE.md)** — od fabrycznego termometru do wersji domofonowej przez BLE, OTA lub SWS.
+- 📄 **[Dokumentacja PDF](docs/domofon-miwi-urmet-home-assistant.pdf)** — schemat blokowy, szczegółowe schematy obwodów i wyniki pomiarów.
+- 🧩 **[Pliki Home Assistant](homeassistant/)** — konwerter, automatyzacje, skrypt i indeks OTA.
 
-Gotowe pliki konfiguracyjne znajdziesz w katalogu `homeassistant/`:
+## Kilka rzeczy, których nauczył mnie ten projekt
 
-| Plik | Za co odpowiada? |
-|---|---|
-| [`zigbee2mqtt/external_converters/domofon.mjs`](homeassistant/zigbee2mqtt/external_converters/domofon.mjs) | Udostępnia urządzenie `DOMOFON-z` w Zigbee2MQTT |
-| [`automations.yaml`](homeassistant/automations.yaml) | Wysyła powiadomienie z przyciskiem „Otwórz”, obsługuje jego naciśnięcie i wykrywa utratę łączności |
-| [`scripts.yaml`](homeassistant/scripts.yaml) | Sprawdza warunki bezpieczeństwa przed wysłaniem polecenia otwarcia |
+- **Sam transoptor nie wystarczył** do symulacji podniesienia słuchawki. Centrala nie zawsze widziała odebranie — pomogło użycie tranzystora.
+- **Przycisk otwierania wymaga odpowiednio niskiego spadku napięcia.** Niektóre testowane warianty z transoptorem działały niepewnie.
+- **Widełki potrafią się mechanicznie zacinać.** Dlatego firmware przewiduje ponowienie przełączenia.
+- **Otwieranie bez wywołania nie było dostępne** w testowanej centrali. Układ najpierw musi zasymulować odebranie połączenia.
 
-W konfiguracji zastąp `notify.mobile_app_TWOJ_TELEFON` nazwą usługi powiadomień swojego telefonu. Sprawdź również identyfikatory encji i automatyzacji — zależą od nazw utworzonych w Twoim Home Assistant.
+Dokładniejsze wskazówki są w [sekcji diagnostycznej instrukcji montażu](docs/MONTAZ.md#9-jeśli-coś-nie-działa).
 
-**Ważne:** przykładowy skrypt dopuszcza otwarcie tylko w ciągu **60 sekund od dzwonka** i tylko raz dla danego wywołania. To zabezpieczenie przed przypadkowym uruchomieniem otwierania poza aktywną wizytą.
+## Bezpieczeństwo, autorstwo i licencje
 
-## Co wyszło podczas testów?
+To dokumentacja **działającego prototypu**, a nie uniwersalny moduł do dowolnego domofonu. Przeróbkę wykonujesz na własne ryzyko. Nie modyfikuj centrali ani magistrali budynku, a przed lutowaniem zweryfikuj swoją rewizję płytki.
 
-Kilka rzeczy, które oszczędzą czasu przy podobnej przeróbce:
+Projekt korzysta z **[ZigbeeTLc autorstwa pvvx](https://github.com/pvvx/ZigbeeTLc)**. Oryginalny kod pozostaje objęty licencją autora; szczegóły i pełny tekst znajdują się w [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). Własne modyfikacje i oryginalna dokumentacja repozytorium są udostępniane na [MIT](LICENSE), w zakresie praw przysługujących ich autorowi. Gotowe obrazy zawierają zarówno kod ZigbeeTLc, jak i modyfikacje domofonowe.
 
-- **Sam transoptor nie wystarczył** do sterowania widełkami ani przyciskiem. Problemem był dostępny prąd i spadek napięcia. Pomogło użycie tranzystorów.
-- **Mechaniczny przełącznik widełkowy potrafił się zacinać.** Dlatego firmware może automatycznie ponowić jego przełączenie.
-- **Otwieranie bez wcześniejszego dzwonka nie działało** w testowanej centrali (funkcja T1, zacisk T2:180 była wyłączona).
-- **Logi Zigbee2MQTT pomagają w diagnozie.** Jeśli stan „dzwoni” utrzymuje się przez cały czas symulowanego podniesienia słuchawki, centrala prawdopodobnie nie zarejestrowała odebrania połączenia.
-
-## Bezpieczeństwo i zgodność
-
-To opis działającego prototypu, **nie uniwersalna instrukcja dla wszystkich instalacji Miwi-Urmet**. Modyfikujesz urządzenie podłączone do wspólnej infrastruktury budynku, więc wykonujesz prace na własne ryzyko. Nie ingeruj w centralę ani magistralę budynku. Przed podłączeniem elektroniki zweryfikuj styki, napięcia i sposób działania swojego unifonu.
-
-## Autorzy i licencje
-
-Ten projekt opiera się na [ZigbeeTLc autorstwa pvvx](https://github.com/pvvx/ZigbeeTLc), w wersji bazowej `c915b52`. Dziękujemy autorowi za udostępnienie firmware.
-
-**Co obejmują poszczególne licencje?**
-
-- **Oryginalne ZigbeeTLc:** obowiązuje licencja autora projektu źródłowego. Jej pełny tekst umieściliśmy w [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md).
-- **Modyfikacje dla domofonu i oryginalne materiały tego repozytorium:** MIT, w zakresie praw przysługujących autorowi tych zmian — zobacz [LICENSE](LICENSE).
-- **Gotowe obrazy `.bin` i `.zigbee`:** zawierają kod bazowy ZigbeeTLc oraz zmiany wykonane na potrzeby domofonu. Sama licencja MIT tego repozytorium nie oznacza przejęcia autorstwa kodu pvvx.
-
+**Masz pytanie, znalazłeś błąd albo chcesz dostosować projekt do innego modelu?** Zajrzyj do [Issues](../../issues) lub zaproponuj zmianę przez pull request.
