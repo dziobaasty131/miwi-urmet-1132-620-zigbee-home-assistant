@@ -34,7 +34,13 @@ Zmierzone połączenia przełącznika widełkowego **od strony spodniej**:
 
 W opisywanej płytce pin 3 jest połączony z masą unifonu (blaszką przycisku), a pin 5 z czerwonym przewodem głośnika. **Nie trzeba przecinać ścieżek ani usuwać oryginalnych elementów**.
 
-Punkty lutowania należy ustalić na podstawie schematów i własnych pomiarów. Fotografie z niezweryfikowanymi oznaczeniami nie są częścią tej instrukcji.
+### Zdjęcie rzeczywistego montażu — strona lutowania
+
+![Tylna strona płytki Miwi-Urmet 1132/620 z przylutowanymi przewodami sterownika](img/unifon_lutowania.jpeg)
+
+[Otwórz oryginalne zdjęcie w pełnym rozmiarze](img/unifon_lutowania.jpeg).
+
+To fotografia **konkretnego, działającego egzemplarza** unifonu, pokazująca połączenia od strony ścieżek. Zdjęcie nie jest opisane strzałkami: przed lutowaniem porównaj punkty ze schematami oraz potwierdź funkcje styków miernikiem. Kolory przewodów nie stanowią uniwersalnego standardu dla innych rewizji płytki.
 
 ## 3. Podłącz wykrywanie dzwonka
 
